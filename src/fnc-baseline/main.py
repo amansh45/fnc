@@ -6,10 +6,8 @@ import re
 import nltk
 from sklearn import feature_extraction
 import math
-from features import refuting_features, polarity_features
-from features import word_overlap_features, word2vec_features, createWord2VecDict
+from features import word_overlap_features, refuting_features, polarity_features
 from sklearn.ensemble import GradientBoostingClassifier
-from score import report_score, LABELS, score_submission
 
 def generate_features(headline, body):
     X_overlap = word_overlap_features(headline, body)
@@ -18,15 +16,12 @@ def generate_features(headline, body):
     print('refuting fets generated...')
     X_polarity = polarity_features(headline, body)
     print('polarity fets generated...')
-    #X_hand = hand_features(headline, body)
-    #X = np.c_[X_hand, X_polarity, X_refuting, X_overlap]
     X = np.c_[X_polarity, X_refuting, X_overlap]
     return X
 
 def preprocess(stances, bodies):
     processed_heads, processed_bodies = [], []
     
-    # Cleans a string: Lowercasing, trimming, removing non-alphanumeric, stop words.
     for headline in stances:
         clean_head = " ".join(re.findall(r'\w+', headline, flags=re.UNICODE)).lower()
         tok_head = [t for t in nltk.word_tokenize(clean_head)]
@@ -90,7 +85,6 @@ def prepare_train_data():
     for fid in idTrain:
         trainBody.append(pBody[body_ids.tolist().index(fid)])
         
-    createWord2VecDict(pHead, pBody)
     
     return trainHead, trainBody, trainLab, valHead, valBody, valLab
 
@@ -144,13 +138,10 @@ def fnc_score(actual, predicted):
     calc_score = score(actual, predicted)
     return (calc_score*100)/actual_score
 
-#tHeadLine, tBody, tLabels, vHeadLine, vBody, vLabels = prepare_data_folds()
 
 trainHeadLine, trainBody, trainLabels, valHeadLine, valBody, valLabels = prepare_train_data()
 print('Data prepared and loaded')
 
-trainHead_wvfeats, trainBody_wvfeats = word2vec_features(trainHeadLine, trainBody)
-print('Embedding matrix generated....')
 
 trainFeats = generate_features(trainHeadLine, trainBody)
 valFeats = generate_features(valHeadLine, valBody)
