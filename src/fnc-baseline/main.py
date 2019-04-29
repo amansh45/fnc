@@ -74,7 +74,7 @@ def prepare_train_data():
     
     pHead, pBody = preprocess(head_array[:,0], body_array[:,1])
     
-    #trainHead, valHead, trainLab, valLab, idTrain, idVal = train_test_split(pHead, new_lab, stance_ids, test_size=0.20, random_state=42)
+    trainHead, valHead, trainLab, valLab, idTrain, idVal = train_test_split(pHead, new_lab, stance_ids, test_size=0.20, random_state=42)
 
     
     valBody = []
@@ -144,9 +144,11 @@ print('Data prepared and loaded')
 
 
 trainFeats = generate_features(trainHeadLine, trainBody)
+print('Train Features generated....')
 valFeats = generate_features(valHeadLine, valBody)
+print('Validation Features generated.....')
 
-print('Features calculated successfully...')
+print('Features calculated successfully....')
 clf = GradientBoostingClassifier(n_estimators=200, random_state=14128, verbose=True)
 clf.fit(trainFeats, trainLabels)
 valPredictions = clf.predict(valFeats)
@@ -156,6 +158,13 @@ print('Validation Score is: ', valScore)
 
 testHeadLine, testBody, testLabels = prepare_test_data()
 testFeats = generate_features(testHeadLine, testBody)
+print('Test Features generated....')
 testPredictions = clf.predict(testFeats)
 testScore = fnc_score(testLabels, testPredictions)
 print('Test Score is: ',testScore)
+
+
+y_pred = pd.Series(testPredictions)
+y_true = pd.Series(testLabels)
+print('Confusion matrix over test data: ')
+print(pd.crosstab(y_true, y_pred, rownames=['True'], colnames=['Predicted'], margins=True))

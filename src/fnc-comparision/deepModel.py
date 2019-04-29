@@ -27,96 +27,114 @@ def fnc_score(actual, predicted):
     calc_score = score(actual, predicted)
     return (calc_score*100)/actual_score
 
-path = '/home/aman/Desktop/fnc/SMAI-fnc/fnc/input_data'
+def vectorsExist():
+    return True
 
-pickle_in = open(path+'/wv_test.pickle',"rb")
-wv_test = pickle.load(pickle_in)   
-pickle_in.close()
-wv_test = np.array(wv_test)
+def load_split_vectors():    
+    path = os.getcwd().split('/')
+    path.pop()
+    path.pop()
+    
+    pickle_in = open(path+'/input_data/wv_test.pickle',"rb")
+    wv_test = pickle.load(pickle_in)   
+    pickle_in.close()
+    wv_test = np.array(wv_test)
+    
+    pickle_in = open(path+'/wv_train.pickle',"rb")
+    wv_train = pickle.load(pickle_in)
+    pickle_in.close()
+    
+    pickle_in = open(path+'/baseline_train.pickle',"rb")
+    base_train = pickle.load(pickle_in)   
+    pickle_in.close()
+    
+    pickle_in = open(path+'/baseline_test.pickle',"rb")
+    base_test = pickle.load(pickle_in)   
+    pickle_in.close()
+    
+    pickle_in = open(path+'/trainLab.pickle',"rb")
+    trainLabels = pickle.load(pickle_in)   
+    pickle_in.close()
+    
+    pickle_in = open(path+'/testLab.pickle',"rb")
+    testLabels = pickle.load(pickle_in)   
+    pickle_in.close()
+    
+    pickle_in = open(path+'/sentiment_train.pickle',"rb")
+    sentiment_train = pickle.load(pickle_in)   
+    pickle_in.close()
+    
+    pickle_in = open(path+'/sentiment_test.pickle',"rb")
+    sentiment_test = pickle.load(pickle_in)   
+    pickle_in.close()
+    
+    cat_trainLabels = []
+    for x in trainLabels:
+        arr = [0] * 4
+        arr[x[0]] = 1
+        cat_trainLabels.append(arr)
+    
+    trainLabels = trainLabels.reshape(trainLabels.shape[0])
+    
+    sentiment_train, sentiment_val, wv_train, wv_val, base_train, base_val, trainLabels, valLabels = train_test_split(sentiment_train, wv_train, base_train, trainLabels, test_size=0.20, random_state=42)
+    
+    return sentiment_train, sentiment_val, sentiment_test, wv_train, wv_val, wv_test, base_train, base_val, base_test, trainLabels, valLabels, testLabels
 
-pickle_in = open(path+'/wv_train.pickle',"rb")
-wv_train = pickle.load(pickle_in)
-pickle_in.close()
-
-pickle_in = open(path+'/baseline_train.pickle',"rb")
-base_train = pickle.load(pickle_in)   
-pickle_in.close()
-
-pickle_in = open(path+'/baseline_test.pickle',"rb")
-base_test = pickle.load(pickle_in)   
-pickle_in.close()
-
-pickle_in = open(path+'/trainLab.pickle',"rb")
-trainLabels = pickle.load(pickle_in)   
-pickle_in.close()
-
-pickle_in = open(path+'/testLab.pickle',"rb")
-testLabels = pickle.load(pickle_in)   
-pickle_in.close()
-
-pickle_in = open(path+'/sentiment_train.pickle',"rb")
-sentiment_train = pickle.load(pickle_in)   
-pickle_in.close()
-
-pickle_in = open(path+'/sentiment_test.pickle',"rb")
-sentiment_test = pickle.load(pickle_in)   
-pickle_in.close()
-
-cat_trainLabels = []
-for x in trainLabels:
-    arr = [0] * 4
-    arr[x[0]] = 1
-    cat_trainLabels.append(arr)
-
-trainLabels = trainLabels.reshape(trainLabels.shape[0])
-
-sentiment_train, sentiment_val, wv_train, wv_val, base_train, base_val, trainLabels, valLabels = train_test_split(sentiment_train, wv_train, base_train, trainLabels, test_size=0.20, random_state=42)
-
-input1 = Input(shape=(8,))
-x1 = Dense(40, activation='relu')(input1)
-
-input2 = Input(shape=(600,))
-x2 = Dense(1000, activation='relu')(input2)
-x2 = Dropout(0.25)(x2)
-x2 = Dense(500, activation='relu')(x2)
-x2 = Dropout(0.125)(x2)
-x2 = Dense(500, activation='relu')(x2)
-x2 = Dropout(0.1)(x2)
-x2 = Dense(100, activation='relu')(x2)
-x2 = Dropout(0.1)(x2)
-x2 = Dense(40, activation='relu')(x2)
-
-input3 = Input(shape=(18,))
-x3 = Dense(40, activation='relu')(input3)
-
-added = tf.keras.layers.add([x1, x2, x3])
-
-out = Dense(4, activation='softmax')(added)
-model = Model(inputs=[input1, input2, input3], outputs=out)
-
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
-
-cat_trainLabels = to_categorical(trainLabels)
-cat_valLabels = to_categorical(valLabels)
-model.fit([sentiment_train, wv_train, base_train], cat_trainLabels, epochs=10, validation_data=([sentiment_val, wv_val, base_val], cat_valLabels))
-valPred = model.predict([sentiment_val, wv_val, base_val])
-testPred = model.predict([sentiment_test, wv_test, base_test])
-argmaxValPred = np.argmax(valPred, axis=1)
-argmaxTestPred = np.argmax(testPred, axis=1)
-print('Accuracy over validation set: ', accuracy_score(argmaxValPred, valLabels))
-print('Accuracy over test set: ', accuracy_score(argmaxTestPred, testLabels))
-print('Fnc score over validation set: ', fnc_score(valLabels, argmaxValPred))
-print('Fnc score over test set: ', fnc_score(testLabels, argmaxTestPred))
-
-y_pred = pd.Series(argmaxValPred)
-y_true = pd.Series(valLabels)
-print('Validation Set confusion matrix is: ')
-print(pd.crosstab(y_true, y_pred, rownames=['True'], colnames=['Predicted'], margins=True))
-
-testLabels = testLabels.reshape(testLabels.shape[0])
-y_pred = pd.Series(argmaxTestPred)
-y_true = pd.Series(testLabels)
-print('Test Set confusion matrix is: ')
-print(pd.crosstab(y_true, y_pred, rownames=['True'], colnames=['Predicted'], margins=True))
+def implementDeepModel(sentiment_train, sentiment_val, sentiment_test, wv_train, wv_val, wv_test, base_train, base_val, base_test, trainLabels, valLabels, testLabels):
+    input1 = Input(shape=(8,))
+    x1 = Dense(40, activation='relu')(input1)
+    
+    input2 = Input(shape=(600,))
+    x2 = Dense(1000, activation='relu')(input2)
+    x2 = Dropout(0.25)(x2)
+    x2 = Dense(500, activation='relu')(x2)
+    x2 = Dropout(0.125)(x2)
+    x2 = Dense(500, activation='relu')(x2)
+    x2 = Dropout(0.1)(x2)
+    x2 = Dense(100, activation='relu')(x2)
+    x2 = Dropout(0.1)(x2)
+    x2 = Dense(40, activation='relu')(x2)
+    
+    input3 = Input(shape=(18,))
+    x3 = Dense(40, activation='relu')(input3)
+    
+    added = tf.keras.layers.add([x1, x2, x3])
+    
+    out = Dense(4, activation='softmax')(added)
+    model = Model(inputs=[input1, input2, input3], outputs=out)
+    
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    
+    cat_trainLabels = to_categorical(trainLabels)
+    cat_valLabels = to_categorical(valLabels)
+    model.fit([sentiment_train, wv_train, base_train], cat_trainLabels, epochs=3, batch_size=32, validation_data=([sentiment_val, wv_val, base_val], cat_valLabels))
+    valPred = model.predict([sentiment_val, wv_val, base_val])
+    sentiment_test = np.array(sentiment_test)
+    wv_test = np.array(wv_test)
+    base_test = np.array(base_test)
+    testPred = model.predict([sentiment_test, wv_test, base_test])
+    argmaxValPred = np.argmax(valPred, axis=1)
+    argmaxTestPred = np.argmax(testPred, axis=1)
+    print('Accuracy over validation set: ', accuracy_score(argmaxValPred, valLabels))
+    print('Accuracy over test set: ', accuracy_score(argmaxTestPred, testLabels))
+    print('Fnc score over validation set: ', fnc_score(valLabels, argmaxValPred))
+    print('Fnc score over test set: ', fnc_score(testLabels, argmaxTestPred))
+    
+    y_pred = pd.Series(argmaxValPred)
+    y_true = pd.Series(valLabels)
+    print('Validation Set confusion matrix is: ')
+    print(pd.crosstab(y_true, y_pred, rownames=['True'], colnames=['Predicted'], margins=True))
+    
+    testLabels = testLabels.reshape(testLabels.shape[0])
+    y_pred = pd.Series(argmaxTestPred)
+    y_true = pd.Series(testLabels)
+    print('Test Set confusion matrix is: ')
+    print(pd.crosstab(y_true, y_pred, rownames=['True'], colnames=['Predicted'], margins=True))
+    
+    pred_path = '/home/aman/Desktop/fnc/SMAI-fnc/fnc/output_data/deepPred.pickle'
+    pickle_out = open(pred_path,"wb")
+    pickle.dump(testPred, pickle_out)
+    pickle_out.close()
+    
