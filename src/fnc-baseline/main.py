@@ -74,7 +74,7 @@ def prepare_train_data():
     
     pHead, pBody = preprocess(head_array[:,0], body_array[:,1])
     
-    trainHead, valHead, trainLab, valLab, idTrain, idVal = train_test_split(pHead, new_lab, stance_ids, test_size=0.20, random_state=42)
+    #trainHead, valHead, trainLab, valLab, idTrain, idVal = train_test_split(pHead, new_lab, stance_ids, test_size=0.20, random_state=42)
 
     
     valBody = []
